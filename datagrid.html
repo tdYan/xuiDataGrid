@@ -1,0 +1,140 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="./bootstrap.min.css" />
+    <style>
+        .fl{float:left;}
+        .xui-gridbox {
+            
+        }
+        .xui-gridtable {
+            overflow:auto;
+        }
+        .xui-grid-topbtntools {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+        }
+        .xui-grid-topbtntools ~ .xui-gridwrap{margin-top:30px;}
+        .xui-gridwrap {
+            overflow: hidden;
+            position: relative;
+        }
+        .xui-grid-table {
+            table-layout: fixed;
+            position: relative;
+            background-color:#fff;
+        }
+        .xui-gridtheader table{margin-bottom:0;}
+        .xui-grid-header-cells{ cursor:pointer;}
+        .xui-gridbox-forzen .xui-gridtheader {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            overflow: hidden;
+        }
+         .xui-gridtheader{top:40px;}
+        .xui-gridtbody {
+        }
+        .xui-grid-tbody-cells {
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="xmsuiDataGrid" style="width:500px;"></div>
+
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="jq.xms.datagrid.js"></script>
+    <script>
+        function getTestData() {
+            var data = new Array();
+            var firstNames =
+                [
+                    "Andrew", "Nancy", "Shelley", "Regina", "Yoshi", "Antoni", "Mayumi", "Ian", "Peter", "Lars", "Petra", "Martin", "Sven", "Elio", "Beate", "Cheryl", "Michael", "Guylene"
+                ];
+            var lastNames =
+                [
+                    "Fuller", "Davolio", "Burke", "Murphy", "Nagase", "Saavedra", "Ohno", "Devling", "Wilson", "Peterson", "Winkler", "Bein", "Petersen", "Rossi", "Vileid", "Saylor", "Bjorn", "Nodier"
+                ];
+            var productNames =
+                [
+                    "Black Tea", "Green Tea", "Caffe Espresso", "Doubleshot Espresso", "Caffe Latte", "White Chocolate Mocha", "Cramel Latte", "Caffe Americano", "Cappuccino", "Espresso Truffle", "Espresso con Panna", "Peppermint Mocha Twist"
+                ];
+            var priceValues =
+                [
+                    "2.25", "1.5", "3.0", "3.3", "4.5", "3.6", "3.8", "2.5", "5.0", "1.75", "3.25", "4.0"
+                ];
+            for (var i = 0; i < 100; i++) {
+                var row = {};
+                var productindex = Math.floor(Math.random() * productNames.length);
+                var price = parseFloat(priceValues[productindex]);
+                var quantity = 1 + Math.round(Math.random() * 10);
+                row["firstname"] = firstNames[Math.floor(Math.random() * firstNames.length)];
+                row["lastname"] = lastNames[Math.floor(Math.random() * lastNames.length)];
+                row["productname"] = productNames[productindex];
+                row["price"] = price;
+                row["quantity"] = quantity;
+                row["total"] = price * quantity;
+                data[i] = row;
+            }
+            return data;
+        }
+        var source =
+        {
+            localdata: getTestData(),
+            datatype: "array"
+        };
+        var dataAdapter = $.XmsUI.DataApax(source, {
+            loadComplete: function (data) { },
+            loadError: function (xhr, status, error) { }
+        });
+        var opts = {
+            source: dataAdapter,
+            editmode:'row',//cell单元格编辑 row一整行编辑
+            columns: [
+                {
+                    text: 'First Name', datafield: 'firstname', width: 100, isedit: true,
+                    edittype: 'defaultText', },
+                {
+                    text: 'Last Name', datafield: 'lastname', width: 100,
+                    edittype: 'defaultText', },
+                {
+                    text: 'Product', datafield: 'productname', width: 180,
+                    edittype: 'defaultText', },
+                { text: 'Quantity', datafield: 'quantity', edittype: 'defaultText', isedit: true, width: 80, cellsalign: 'right' },
+                { text: 'Unit Price', datafield: 'price', width: 90, cellsalign: 'right', edittype: 'defaultText', isedit: true,cellsformat: 'c2' },
+                {
+                    text: 'Total', datafield: 'total', width: 100, cellsalign: 'right', cellsformat: 'c2', columntype: 'numberinput',
+                    isedit: true,
+                    edittype: 'defaultText',
+                    //preEdit: function (dom, grid, griddata) {
+                    //    //editor.jqxNumberInput({ decimalDigits: 0 });
+                    //    console.log(dom, grid, griddata);
+                    //},
+                    validation: function (cell, value) {
+                        var year = value.getFullYear();
+                        if (year >= 2013) {
+                            return { result: false, message: "Ship Date should be before 1/1/2013" };
+                        }
+                        return true;
+                    }
+                    , initsort: function () { }
+                }
+            ]
+            , width: 0
+            , formular: [{ eventKeys: ['quantity', 'price', 'total'], ruler: ['quantity','*','price','=','total']}]
+        }
+
+        $(function () {
+            $("#xmsuiDataGrid").xmsDataGrid(
+                opts);
+        })
+    </script>
+</body>
+</html>
