@@ -7,7 +7,7 @@
     <style>
         .fl{float:left;}
         .xui-gridbox {
-            
+           
         }
         .xui-gridtable {
             overflow:auto;
@@ -17,10 +17,16 @@
             z-index: 1;
             top: 0;
         }
-        .xui-grid-topbtntools ~ .xui-gridwrap{margin-top:30px;}
+        .xui-grid-topbtntools{ padding:10px 5px;}
+            .xui-grid-topbtntools>a.btn{ margin:0 5px;}
+            .xui-grid-topbtntools ~ .xui-gridwrap {
+                margin-top: 50px;
+            }
+        .xui-grid-searcher{ width:200px;}
         .xui-gridwrap {
             overflow: hidden;
             position: relative;
+            border: 1px solid #ddd;
         }
         .xui-grid-table {
             table-layout: fixed;
@@ -77,7 +83,7 @@
                 [
                     "2.25", "1.5", "3.0", "3.3", "4.5", "3.6", "3.8", "2.5", "5.0", "1.75", "3.25", "4.0"
                 ];
-            for (var i = 0; i < 100; i++) {
+            for (var i = 0; i < 50; i++) {
                 var row = {};
                 var productindex = Math.floor(Math.random() * productNames.length);
                 var price = parseFloat(priceValues[productindex]);
@@ -107,7 +113,7 @@
             columns: [
                 {
                     text: 'First Name', datafield: 'firstname', width: 100, isedit: true, 
-                    edittype: 'defaultText', },
+                    },
                 {
                     text: 'Last Name', datafield: 'lastname', width: 100,
                     edittype: 'defaultText', },
@@ -130,16 +136,10 @@
                     text: 'Total', datafield: 'total', width: 100, cellsalign: 'right', cellsformat: 'c2', columntype: 'numberinput',
                     isedit: true,
                     edittype: 'defaultText'
-                    
-                    //preEdit: function (dom, grid, griddata) {
-                    //    //editor.jqxNumberInput({ decimalDigits: 0 });
-                    //    console.log(dom, grid, griddata);
-                    //},
-                    
                     , initsort: function () { }
                 }
             ]
-            , width: 0
+            , width: 800
             , formular: [{ eventKeys: ['quantity', 'price', 'total'], ruler: ['quantity','*','price','=','total']}]
         }
 

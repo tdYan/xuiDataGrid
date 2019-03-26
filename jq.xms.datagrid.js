@@ -271,7 +271,8 @@
 
 
         this.editorManager = new xui.xuiEditorManager();
-        
+        //设置生产列ID的主键
+        this.primarykey = this.opts.primarykey ? this.opts.primarykey : 'id';
 
         //行计算规则
         this.formular = this.opts.formular;
@@ -287,8 +288,9 @@
         this.$gridtbody = $('<div class="xui-gridtbody" ></div>');
         this.$gridtfooter = $('<div class="xui-gridtfooter" ></div>');
         this.$pager = $('<div class="xui-grid-pager"></div>');
-        this.$topBtnTools = $('<div class="xui-grid-topbtntools clearfix"></div>');
+        this.$topBtnTools = $('<div class="xui-grid-topbtntools clearfix"  style="' + grid_w + '"></div>');
         this.$bottomBtnTools = $('<div class="xui-grid-bottombtntools"></div>');
+        this.$searcher = $('<div class="xui-grid-searcher input-group input-group-sm pull-right"></div>');
         this.$filterWrap = $('<div class="xui-grid-filterwrap"></div>');
         this._rowEditState = 0;//行编辑状态，0：没有行在编辑，1：有1行正在编辑中  ？编辑时验证输入信息是否正确
         this.init();
@@ -297,6 +299,7 @@
     xmsDataGrid.prototype.init = function () {
         
         this.$grid.append(this.$topBtnTools);
+        
         this.$grid.append(this.$gridWrap);
         this.$gridWrap.append(this.$gridtable).append(this.$gridtheader);;
         this.$gridtable
@@ -374,6 +377,7 @@
     }
     xmsDataGrid.prototype.updata = function () {
         var self = this;
+        if (self.state == 2) return false;
         setTimeout(function () {//settimeout用作测试
             self.datas.localdata = getTestData();
             self.clear();
@@ -382,7 +386,7 @@
     }
     xmsDataGrid.prototype.refresh = function () {
         this.clear();
-        this.getData();
+        this.render();
     }
     xmsDataGrid.prototype.setOpts = function (opts) {
         this.opts = $.extend({}, this.opts, opts);
@@ -420,8 +424,10 @@
         var gridHeightW = this.$gridtheader.width();
         var gridtableH = this.$gridtbody.children().height();
         var gridW = this.$grid.width();
-        var offsetW = 16;
+        var offsetW = 18;
+        if (this.isSetWidth) { return false;}
         if (gridbodyH < gridtableH) {
+            this.isSetWidth = true;
             this.$gridtheader.css('width', gridW < gridHeightW + offsetW ? gridHeightW - offsetW : gridHeightW);
             this.$gridtheader.children('table').css('width', gridHeightW - offsetW);
         }
@@ -434,8 +440,18 @@
         
     }
     //local数据修改
-    xmsDataGrid.prototype.changeData = function (rowid) {
-
+    xmsDataGrid.prototype.changeData = function (rowid,key,value) {
+        var row = this.getRowData(rowid);
+        if (row && row.length > 0) {
+            row[0][key] = value;
+        }
+    }
+    //
+    xmsDataGrid.prototype.getRowData = function (rowid) {
+        var primaryKey = this.primarykey;
+        return $.grep(this.datas.localdata, function (item,key) {
+            return item[primaryKey] == rowid
+        });
     }
     xmsDataGrid.prototype.findTypeColumn = function (field) {
         var type = $.grep(this.opts.columns,function (item,key) {
@@ -467,7 +483,9 @@
         $($row).find('td.xui-grid-editcell').each(function () {
            // console.log($(this))
             $(this).trigger('xuievent.xui-grid-edit');
+            
         });
+        self.state = 2;
         self._rowEditState = 1;
         self.$box.off('click.xui-grid-roweditblur').on('click.xui-grid-roweditblur', function (e) {
             if ($(e.target).closest($(that)).length == 0) {
@@ -479,6 +497,8 @@
                     $(that).find('.xui-grid-editcell').each(function () {
                         $(this).find('input').trigger('xuievent.xui-grid-editblur');
                     });
+                    //self.changeData($row.attr('data-id'));
+                    self.state = 1;
                     self._rowEditState = 0;
                 }
             }
@@ -490,6 +510,9 @@
         var self = this;
         var field = $(cell).attr('data-field');
         var _editer = self.findTypeColumn(field);//查找对应的编辑方式
+        if (_editer.isedit && !_editer.edittype) {
+            _editer.edittype = 'defaultText';
+        }
         var editer = self.findColEditer(_editer.edittype);
         if (editer) {
             //变为可编辑元素
@@ -499,14 +522,21 @@
                 rendered: function ($input, $box, data, xuiediter) {
                     $input.focus();
                 }
-            }, _editer));
+            }, _editer,{
+                    edited: function ($input, $box, datas, editor) {
+                        var field = $input.parent('td').attr('data-field');
+                        self.changeData($box.parents('tr:first').attr('data-id'), field, $input.val());
+                    }
+                }));
             self.editorManager.add(_edit);
             $(cell).off('click.xuigridCell').on('click.xuigridCell', function () {
                 var that = this;
                 $(this).trigger('xuievent.xui-grid-edit');
+                self.state = 2;
                 var count = 0;
                 $(that).find('input').on('blur', function (e) {
                     $(that).find('input').trigger('xuievent.xui-grid-editblur').trigger('change');
+                    self.state = 1;
                 })
             });
 
@@ -524,10 +554,22 @@
             $rows.find('td.xui-grid-editcell').each(function (e) {
                 var field = $(this).attr('data-field');
                 var _editer = self.findTypeColumn(field);//查找对应的编辑方式
+                if (_editer.isedit && !_editer.edittype) {
+                    _editer.edittype = 'defaultText';
+                }
                 var editer = self.findColEditer(_editer.edittype);
                 if (editer) {
                     //变为可编辑元素
-                    var _edit = new editer(this, $.extend({}, { datatype: _editer.datatype, super: self }, _editer));
+                    var _edit = new editer(this, 
+                        $.extend({}, { datatype: _editer.datatype, super: self },
+                            _editer,
+                            {
+                                edited: function ($input, $box, datas, editor) {
+                                    var field = $input.parent('td').attr('data-field');
+                                    self.changeData($box.parents('tr:first').attr('data-id'),field,$input.val());
+                                }
+                            }
+                        ));
                     self.editorManager.add(_edit);
                 }
             })
@@ -577,6 +619,28 @@
         this.bindCheckbox();
         this.bodyBindEdit();
     }
+    xmsDataGrid.prototype.searchByKeyWord = function ($input) {
+        console.log(setTimeout(0))
+        this.updata();
+    }
+    xmsDataGrid.prototype.createsearcher = function () {
+        this.$topBtnTools.append(this.$searcher);
+        var self = this;
+        var datas = this.datas.localdata;
+        var columns = this.opts.columns;
+        var htmls = [], ths = [];
+        var primarykey = this.opts.primarykey;
+        var __keyname = primarykey ? primarykey : 'id';
+        //是否根据字段名搜索？？？
+        //for (var i = 0, len = columns.length; i < len; i++) {
+        //    var item = columns[i];
+        //}
+        this.$searcher.html('<input type="text" value="" class="xui-grid-searcher-input form-control" /><span class="input-group-btn">< button class= "btn btn-default" name = "clearBtn" type = "button" title = "清空" ><span class="glyphicon glyphicon-remove-sign"></span></button ><button class="btn btn-default" name="searchBtn" type="button"><span class="glyphicon glyphicon-search xui-grid-search-btn"></span></button></span >');
+        var $input = this.$searcher.find('.xui-grid-searcher-input'), $btn = this.$searcher.find('.xui-grid-search-btn');
+        $btn.on('click', function () {
+            self.searchByKeyWord($input,$btn);
+        })
+    }
     xmsDataGrid.prototype.render = function () {
         this.opts.preRender && this.opts.preRender(this);
         this.renderHeader();
@@ -589,7 +653,7 @@
         this.fixHeaderWidth();//需要在设置高度以后加载
 
         this.createBtnTools();
-
+        this.createsearcher();
         this.bindFormularEvent();
     }
     xmsDataGrid.prototype.renderFooter = function () { }
@@ -819,7 +883,7 @@
         checkValid: function () {
             var self = this;
             var flags = self.valid();
-            if (flags.length == 0) {
+            if (flags.length == 0) {//验证通过则关闭编辑状态
                 for (var i = 0, len = this.editors.length; i < len; i++) {
                     var item = this.editors[i];
                     if (item.editState == 1) {
@@ -973,7 +1037,7 @@
 
         //验证相关
         this.required = opts.required;
-        console.log(this.required);
+        //console.log(this.required);
         if (this.required === undefined) {
             this.required = true;
         }
