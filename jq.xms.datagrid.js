@@ -67,9 +67,10 @@
 
 (function ($, root, undefined) {
     "use strict"
-    function watch(key, value) {
-        this.key = key;
-        this.value = value;
+    function watch(opts) {
+        this.key = opts.key;
+        this.value = opts.value;
+        this.dom = opts.dom;
     }
 
     function checker(isUpdate) {
@@ -79,9 +80,9 @@
         this.oldWatchs = [];
         this.dirtyList = [];
     }
-    checker.prototype.addWatch = function (key, value) {
-        this.watchs.push(new watch(key, value));
-        this.oldWatchs.push(new watch(key, value));
+    checker.prototype.addWatch = function (opts) {
+        this.watchs.push(new watch(opts));
+        this.oldWatchs.push(new watch(opts));
     }
     checker.prototype.checkWatchs = function (callback) {
         var self = this;
@@ -360,7 +361,7 @@
     }
     xmsDataGrid.prototype.updata = function () {
         var self = this;
-        setTimeout(function () {
+        setTimeout(function () {//settimeout用作测试
             self.datas.localdata = getTestData();
             self.clear();
             self.render();
@@ -458,7 +459,7 @@
         self.$box.off('click.xui-grid-roweditblur').on('click.xui-grid-roweditblur', function (e) {
             if ($(e.target).closest($(that)).length == 0) {
                 if (self._rowEditState == 1) {
-                    var validers = self.editorManager.valid();
+                    var validers = self.editorManager.checkValid();
                     if (validers.length > 0) {
                         return false;
                     }
@@ -783,6 +784,19 @@
                 this.editors.splice(index);
             }
         },
+        checkValid: function () {
+            var self = this;
+            var flags = self.valid();
+            if (flags.length == 0) {
+                for (var i = 0, len = this.editors.length; i < len; i++) {
+                    var item = this.editors[i];
+                    if (item.editState == 1) {
+                        item.editEnd(item.$input);
+                    }
+                }
+            } 
+            return flags;
+        },
         //验证
         valid: function () {
             var flags = [];
@@ -835,6 +849,7 @@
             this._render();
             this.rendered(this.$input, this.$box, this.getCurrentData(), this);
             this.glo_rendered && this.glo_rendered(this.$input, this.$box, this.getCurrentData(), this);
+           
         },
         editEnd: function (that) {
             var self = this;
@@ -843,35 +858,19 @@
             self.edited(self.$input, self.$box, self.getCurrentData(), self);
             this.glo_edited && this.glo_edited(this.$input, this.$box, this.getCurrentData(), this);
             self.datalist.push(val);
-            self.editState = 2;
             //console.log('end',self.editState);
             that && $(that).off();
             self.remove();
             self.$tooltip.clear();
             self.$box.html(val);
+            self.editState = 2;
         },
         remove: function () {
             this.$input.off();
             this.$input.remove();
         },
         toValid: function () {
-            var self = this;
-            //self.$tooltip.hide();
-            var flag = [];
-            //添加验证相关
-            if (self.valid) { flag = self.valid(); }
-            if (flag.length == 0) {
-                //  console.log(flag);
-                self.editEnd(self.$input);
-               // self.$tooltip.clear();
-            } else if (flag.length > 0) {
-                //  console.log(flag);
-                self.editState = 2;
-               // self.$tooltip.$msg = flag[0].message;
-               // self.$tooltip.show();
-                //{ result: false, message: "Ship Date should be before 1/1/2013" }
-            }
-            return flag;
+            
         },
         toEdit: function () {
             var self = this;
@@ -917,8 +916,9 @@
             if (flags.length > 0) {
                 self.$tooltip.$msg = flags[0].message;
                 self.$tooltip.show();
-                self.editState = 2;
+                
             } else {
+               
                 self.$tooltip.clear();
             }
             return flags;
