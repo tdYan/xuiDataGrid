@@ -325,7 +325,7 @@
         this.state = 2;
     }
     xmsDataGrid.prototype.delRow = function (rowId) {
-        
+        console.log('delRow');
     }
     xmsDataGrid.prototype.saveRow = function (rowId) {
 
