@@ -262,6 +262,10 @@
         //整个grid验证状态
         this.allValidate = 0;//所有数据验证完成后方可提交
 
+
+        this.editorManager = new xui.xuiEditorManager();
+        
+
         //行计算规则
         this.formular = this.opts.formular;
         
@@ -383,6 +387,9 @@
         this.$box.css('height', height);
         this.$gridtbody.css({ 'height': height - theadH, 'margin-top': theadH });
     }
+    xmsDataGrid.prototype.getValidManager = function (height) {
+        return this.editorManager;
+    }
     xmsDataGrid.prototype.headerBindFilter = function () {
         var self = this;
         this.$gridtheader.find('th>span.xui-grid-header-cell-label').off('click.xui-grid-header').on('click.xui-grid-header', function (e) {
@@ -443,7 +450,7 @@
         var self = this;
         if (self._rowEditState == 1) return true;
         var that = $row;
-        $($row).find('.xui-grid-editcell').each(function () {
+        $($row).find('td.xui-grid-editcell').each(function () {
            // console.log($(this))
             $(this).trigger('xuievent.xui-grid-edit');
         });
@@ -451,6 +458,10 @@
         self.$box.off('click.xui-grid-roweditblur').on('click.xui-grid-roweditblur', function (e) {
             if ($(e.target).closest($(that)).length == 0) {
                 if (self._rowEditState == 1) {
+                    var validers = self.editorManager.valid();
+                    if (validers.length > 0) {
+                        return false;
+                    }
                     $(that).find('.xui-grid-editcell').each(function () {
                         $(this).find('input').trigger('xuievent.xui-grid-editblur');
                     });
@@ -464,15 +475,18 @@
     xmsDataGrid.prototype.editCell = function (cell,e) {
         var self = this;
         var field = $(cell).attr('data-field');
-        var editer = self.findTypeColumn(field);//查找对应的编辑方式
-        editer = self.findColEditer(editer.edittype);
+        var _editer = self.findTypeColumn(field);//查找对应的编辑方式
+        var editer = self.findColEditer(_editer.edittype);
         if (editer) {
             //变为可编辑元素
-            var _edit = new editer(cell, {
+            var _edit = new editer(cell, $.extend({}, {
+                datatype: _editer.datatype,
+                super:self,
                 rendered: function ($input, $box, data, xuiediter) {
                     $input.focus();
                 }
-            });
+            }, { datatype: editer.datatype }));
+            self.editorManager.add(_edit);
             $(cell).off('click.xuigridCell').on('click.xuigridCell', function () {
                 var that = this;
                 $(this).trigger('xuievent.xui-grid-edit');
@@ -488,18 +502,19 @@
     xmsDataGrid.prototype.bodyBindEdit = function () {
         var self = this;
         if (self.opts.editmode == 'cell') {
-            self.$gridtbody.find('.xui-grid-editcell').each(function (e) {
+            self.$gridtbody.find('td.xui-grid-editcell').each(function (e) {
                 self.editCell(this,e);
             })
         } else if (self.opts.editmode == 'row') {
             var $rows = self.$gridtbody.find('tr');
-            $rows.find('.xui-grid-editcell').each(function (e) {
+            $rows.find('td.xui-grid-editcell').each(function (e) {
                 var field = $(this).attr('data-field');
-                var editer = self.findTypeColumn(field);
-                editer = self.findColEditer(editer.edittype);
+                var _editer = self.findTypeColumn(field);//查找对应的编辑方式
+                var editer = self.findColEditer(_editer.edittype);
                 if (editer) {
                     //变为可编辑元素
-                    var _edit = new editer(this, {});
+                    var _edit = new editer(this, { datatype: _editer.datatype,super: self, });
+                    self.editorManager.add(_edit);
                 }
             })
             $rows.off('click.xui-grid-editrow').on('click.xui-grid-editrow', function (e) {
@@ -629,6 +644,9 @@
         }
     }
 
+
+
+
     //按钮组件
     xui.class('xui.xuiBtn', {
         constructor: function (opts) {
@@ -674,8 +692,122 @@
         
     });
 
+    //可编辑组件管理
+    xui.class('xui.xuiEditorTooltip', {
+        constructor: function (opts) {
+            var __id = getRandomId();
+            this.id = 'r_' + __id;
+            this.isShow = true;
+            this.$box = opts.target;
+            this.$context = opts.context || $('body');
+            this.position = ['auto','auto','auto','auto'];//[top,right,bottom,left];
+            this.offset = [0,0,0,0];//[top,right,bottom,left];
+            this.$icon = opts.icon||'';
+            this.$msg = opts.msg || '';
+            this.$tooltip = null;
+        },
+        init: function () {
+            this.$tooltip = $('<div class="xui-tooltip">' + this.$icon + this.$msg + '</div>');
+            this.$context.append(this.$tooltip);
+            this.setPos();
+        },
+        setPos: function () {
+            var targetOffset = $(this.$box).offset();
+            var targetSize = {
+                width: $(this.$box).outerWidth(), height: $(this.$box).outerHeight()
+            };
+            this.position[3] = 0;
+            this.position[2] =   targetSize.height;
+            var _left = this.position[3] == 'auto' ? this.position[3] : this.position[3] + this.offset[3];
+            var _bottom = this.position[2] == 'auto' ? this.position[2] : this.position[2] + this.offset[2];
+            var _right = this.position[1] == 'auto' ? this.position[1] : this.position[1] + this.offset[1];
+            var _top = this.position[0] == 'auto' ? this.position[0] : this.position[0] + this.offset[0];
+            this.$tooltip.css({ 'left': _left, 'bottom': _bottom, 'right': _right, 'top': _top });
+        },
+        setByContext: function () {
+            var targetOffset = $(this.$box).offset();
+            var targetSize = {
+                width: $(this.$box).outerWidth(), height: $(this.$box).outerHeight()
+            };
+            console.log(targetOffset, targetSize)
+            this.position[3] = targetOffset.left;
+            this.position[0] = targetOffset.top - targetSize.height;
+            var _left = this.position[3] == 'auto' ? this.position[3] : this.position[3] + this.offset[3];
+            var _bottom = this.position[2] == 'auto' ? this.position[2] : this.position[2] + this.offset[2];
+            var _right = this.position[1] == 'auto' ? this.position[1] : this.position[1] + this.offset[1];
+            var _top = this.position[0] == 'auto' ? this.position[0] : this.position[0] + this.offset[0];
+            this.$tooltip.css({ 'left': _left, 'bottom': _bottom, 'right': _right, 'top': _top });
+           // this.$context.on('scroll.xuieditorTooltip', function () {
+
+            //});
+        },
+        clear: function () {
+            this.$tooltip && this.$tooltip.remove();
+        },
+        show: function () {
+            this.$tooltip.html(this.$icon + this.$msg);
+            this.$tooltip.addClass('xui-tooltip--active');
+        },
+        hide: function () {
+            this.$tooltip && this.$tooltip.removeClass('xui-tooltip--active');
+        }
+    });
+
+    //可编辑组件管理
+    xui.class('xui.xuiEditorManager', {
+        constructor: function (opts) {
+            this.editors = [];
+            var __id = getRandomId();
+            this.id = 'r_' + __id;
+        },
+        add: function (editor) {
+            if (!~this.editors.indexOf(editor.id)) {
+                this.editors.push(editor);
+            }
+        },
+        indexOf: function (id) {
+            var index = -1;
+            for (var i = 0, len = this.editors.length; i < len; i++) {
+                var item = this.editors[i];
+                if (item.id == id) {
+                    return i;
+                }
+            }
+        },
+        clear: function () {
+            this.editors = [];
+        },
+        remove: function (id) {
+            var index = this.indexOf(id);
+            if (~index) {
+                this.editors.splice(index);
+            }
+        },
+        //验证
+        valid: function () {
+            var flags = [];
+            for (var i = 0, len = this.editors.length; i < len; i++) {
+                var item = this.editors[i];
+                
+                if (item.validations.length > 0) {
+                    
+                    var valids = item.valid();//验证单元格
+                    if (valids.length > 0) {
+                        flags.push(valids);
+                    }
+                    //flag = $.grep(item.validations, function (ii, nn) {
+                    //    if (typeof nn === 'function') {
+                    //        return nn(item.$input.val());
+                    //    }
+                    //});
+                }
+            }
+            return flags;
+        }
+    });
 
     /*
+     * 可编辑组件
      * glo_开头的方法用于在创建新的类的时候自定义的方法，其他基本都是父类方法
      */
     xui.class('xui.xuiEditor',{
@@ -694,6 +826,8 @@
             this.$input.val(this.getCurrentData());
             this.$box.append(this.$input);
             this.glo_render && this.glo_render(this.$input, this.$box, this.getCurrentData(), this);
+            this.$tooltip.clear();
+            this.$tooltip.init();
         },
         editStart : function () {
             this.preEdit(this.$input, this.$box, this.getCurrentData(), this);
@@ -706,7 +840,6 @@
             var self = this;
             
             var val = self.$input.val();
-            
             self.edited(self.$input, self.$box, self.getCurrentData(), self);
             this.glo_edited && this.glo_edited(this.$input, this.$box, this.getCurrentData(), this);
             self.datalist.push(val);
@@ -714,25 +847,37 @@
             //console.log('end',self.editState);
             that && $(that).off();
             self.remove();
+            self.$tooltip.clear();
             self.$box.html(val);
         },
         remove: function () {
             this.$input.off();
             this.$input.remove();
         },
+        toValid: function () {
+            var self = this;
+            //self.$tooltip.hide();
+            var flag = [];
+            //添加验证相关
+            if (self.valid) { flag = self.valid(); }
+            if (flag.length == 0) {
+                //  console.log(flag);
+                self.editEnd(self.$input);
+               // self.$tooltip.clear();
+            } else if (flag.length > 0) {
+                //  console.log(flag);
+                self.editState = 2;
+               // self.$tooltip.$msg = flag[0].message;
+               // self.$tooltip.show();
+                //{ result: false, message: "Ship Date should be before 1/1/2013" }
+            }
+            return flag;
+        },
         toEdit: function () {
             var self = this;
-            self.$input.on('xuievent.xui-grid-editblur', function () {
+            self.$input.off('xuievent.xui-grid-editblur').on('xuievent.xui-grid-editblur', function () {
                 var that = this;
-                var flag = self.validation();
-                if (flag.result == true) {
-                  //  console.log(flag);
-                    self.editEnd(that);
-                } else if (flag.result == false) {
-                  //  console.log(flag);
-                    self.editState = 2;
-                    //{ result: false, message: "Ship Date should be before 1/1/2013" }
-                }
+                self.valid();
             });
 
             if (self.editState == 1) return true;
@@ -745,7 +890,7 @@
         },
         _bindEvent : function () {
             var self = this;
-            self.$box.on('xuievent.xui-grid-edit', function (e) {
+            self.$box.off('xuievent.xui-grid-edit').on('xuievent.xui-grid-edit', function (e) {
                 self.toEdit(this,e);
             });
             self.$input.on('keyup.xui-grid-edit', function (e) {
@@ -753,27 +898,66 @@
                 self.glo_onchange && self.glo_onchange($(this), self.$box, e);
             });
             self.bindEvent();
+        },
+        //验证
+        valid: function () {
+            var flags = [];
+            var self = this;
+            self.$tooltip.hide();
+            if (this.validations.length > 0) {
+                $.each(this.validations, function (ii, nn) {
+                    if (typeof nn === 'function') {
+                        var _flag = nn(self.$input.val());
+                        if (_flag.result == false) {
+                            flags.push(_flag);
+                        }
+                    }
+                });
+            }
+            if (flags.length > 0) {
+                self.$tooltip.$msg = flags[0].message;
+                self.$tooltip.show();
+                self.editState = 2;
+            } else {
+                self.$tooltip.clear();
+            }
+            return flags;
         }
     });
 
     //编辑
     function xuiEditor(obj, opts) {
+        this.id = opts.id ? 'r_' + opts.id : getRandomId();
         this.name = name;
         this.$box = $(obj);
         this.editState = 0;//0未编辑，1正在编辑，2已编辑过
         this.$input = $('<input type="text" class="form-control xui-editor-input" value="" />');
         this.datalist = [];
         this.handleData = [];
+        //this.validTmpl = {valid:true,msg:''};
         this.defaultData = opts&&(opts.getDefaultData && opts.getDefaultData(this.$box)) || this.$box.html();
         this.datalist.push(this.defaultData);
         this.initEdit = opts.initEdit || function () { };
         this.preEdit = opts.preEdit || function () { }//进入编辑之前
         this.rendered = opts.rendered || function () { }//进入编辑后
         this.edited = opts.edited || function () { }//编辑完成后
-        this.validation = opts.validation || function () { return { result: true, message: "" } }//编辑完成后
+        this.__super = opts.super || null;
+
+        //验证相关
+        this.datatype = opts.datatype || 'default';
+        this.validations = [];//function () { return { result: true, message: "" } };
+        if (this.datatype !== 'default') {
+            if (validtionRuler.hasOwnProperty(this.datatype)) {
+                this.validations.push(validtionRuler[this.datatype]);
+            }
+        }
+        if (typeof opts.validation==='function') {
+            this.validations.push(opts.validation);
+        }
         if (opts.onchange) {
             this.onchange = opts.onchange || function () { };
         }
+        this.$tooltip = new xui.xuiEditorTooltip({ target: this.$box, context: this.$box/* this.__super?this.__super.$box:null*/ });
         
         this.init();
     }
@@ -873,12 +1057,22 @@
             }
         });
 
-    /*默认编辑方式*/
+    /*下拉选择方式*/
     $.fn.xmsDataGrid.addColumnEditType('picklist', {
 
     });
 
-    
+    //验证规则
+    var validtionRuler = {
+        number: function (val) {
+            var flag = !isNaN(val);
+            return { result: flag,message:!flag&&'请输入数字' };
+        }
+    }
+    //添加自定义规则
+    $.fn.xmsDataGrid.addValidRuler = function (name, func) {
+        validtionRuler[name] = func;
+    }
     
     //KoDataApax 数据处理组件 还未完成——————————————————————————————
     /*

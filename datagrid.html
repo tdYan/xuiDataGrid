@@ -42,8 +42,15 @@
         }
         .xui-grid-tbody-cells {
             text-overflow: ellipsis;
-            overflow: hidden;
+            position:relative;
+            word-break:break-all;
         }
+
+
+
+        /*tooltip**/
+        .xui-tooltip{ display:none; padding:3px 7px; position:absolute; right:0; bottom:30px; line-height:24px; background-color:#fff; border:1px solid #ff2200; color:#ff2200; border-radius:3px; font-size:12px;}
+        .xui-tooltip.xui-tooltip--active{display:block;}
     </style>
 </head>
 <body>
@@ -56,15 +63,15 @@
             var data = new Array();
             var firstNames =
                 [
-                    "Andrew", "Nancy", "Shelley", "Regina", "Yoshi", "Antoni", "Mayumi", "Ian", "Peter", "Lars", "Petra", "Martin", "Sven", "Elio", "Beate", "Cheryl", "Michael", "Guylene"
+                    "Andrew", "Nafffffffffffffffffncy", "Shelley", "Regddddddddddddddddddddina", "Yoshi", "Antoni", "Mayumi", "Ian", "Peter", "Lars", "Petra", "Martin", "Sven", "Elio", "Beate", "Chergggggggggggggggggyl", "Michael", "Guylene"
                 ];
             var lastNames =
                 [
-                    "Fuller", "Davolio", "Burke", "Murphy", "Nagase", "Saavedra", "Ohno", "Devling", "Wilson", "Peterson", "Winkler", "Bein", "Petersen", "Rossi", "Vileid", "Saylor", "Bjorn", "Nodier"
+                    "Fuller", "Davolio", "Burddddddddddddddddddddddke", "Murphy", "Nagaddddddddddddddddddddse", "Saavedra", "Ohno", "Devling", "Wilson", "Petersfffffffffffffffon", "Winkler", "Bein", "Petersen", "Rossi", "Vileid", "Saylor", "Bjorn", "Nodier"
                 ];
             var productNames =
                 [
-                    "Black Tea", "Green Tea", "Caffe Espresso", "Doubleshot Espresso", "Caffe Latte", "White Chocolate Mocha", "Cramel Latte", "Caffe Americano", "Cappuccino", "Espresso Truffle", "Espresso con Panna", "Peppermint Mocha Twist"
+                    "Black Tea", "Green Tea", "Caffe Espresso", "Doubleshfffffffffffffffot Espresso", "Caffe Latte", "White Chocolate Mocha", "Cramel Latte", "Caffe Ameriffffffffffffffcano", "Cappucsssssssssssssscino", "Espresso Truffle", "Espresso con Panna", "Peppermint Mocha Twist"
                 ];
             var priceValues =
                 [
@@ -99,7 +106,7 @@
             editmode:'row',//cell单元格编辑 row一整行编辑
             columns: [
                 {
-                    text: 'First Name', datafield: 'firstname', width: 100, isedit: true,
+                    text: 'First Name', datafield: 'firstname', width: 100, isedit: true, datatype: 'number',
                     edittype: 'defaultText', },
                 {
                     text: 'Last Name', datafield: 'lastname', width: 100,
@@ -108,22 +115,23 @@
                     text: 'Product', datafield: 'productname', width: 180,
                     edittype: 'defaultText', },
                 { text: 'Quantity', datafield: 'quantity', edittype: 'defaultText', isedit: true, width: 80, cellsalign: 'right' },
-                { text: 'Unit Price', datafield: 'price', width: 90, cellsalign: 'right', edittype: 'defaultText', isedit: true,cellsformat: 'c2' },
+                { text: 'Unit Price', datafield: 'price', width: 90, cellsalign: 'right', datatype: 'number', edittype: 'defaultText', isedit: true,cellsformat: 'c2' },
                 {
                     text: 'Total', datafield: 'total', width: 100, cellsalign: 'right', cellsformat: 'c2', columntype: 'numberinput',
                     isedit: true,
-                    edittype: 'defaultText',
+                    edittype: 'defaultText'
+                    
                     //preEdit: function (dom, grid, griddata) {
                     //    //editor.jqxNumberInput({ decimalDigits: 0 });
                     //    console.log(dom, grid, griddata);
                     //},
-                    validation: function (cell, value) {
-                        var year = value.getFullYear();
-                        if (year >= 2013) {
-                            return { result: false, message: "Ship Date should be before 1/1/2013" };
-                        }
-                        return true;
-                    }
+                    //validation: function (cell, value) {
+                    //    var year = value.getFullYear();
+                    //    if (year >= 2013) {
+                    //        return { result: false, message: "Ship Date should be before 1/1/2013" };
+                    //    }
+                    //    return true;
+                    //}
                     , initsort: function () { }
                 }
             ]
