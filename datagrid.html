@@ -106,7 +106,7 @@
             editmode:'row',//cell单元格编辑 row一整行编辑
             columns: [
                 {
-                    text: 'First Name', datafield: 'firstname', width: 100, isedit: true, datatype: 'number',
+                    text: 'First Name', datafield: 'firstname', width: 100, isedit: true, 
                     edittype: 'defaultText', },
                 {
                     text: 'Last Name', datafield: 'lastname', width: 100,
@@ -115,7 +115,17 @@
                     text: 'Product', datafield: 'productname', width: 180,
                     edittype: 'defaultText', },
                 { text: 'Quantity', datafield: 'quantity', edittype: 'defaultText', isedit: true, width: 80, cellsalign: 'right' },
-                { text: 'Unit Price', datafield: 'price', width: 90, cellsalign: 'right', datatype: 'number', edittype: 'defaultText', isedit: true,cellsformat: 'c2' },
+                {
+                    text: 'Unit Price', datafield: 'price', width: 90, cellsalign: 'right', datatype: 'number', edittype: 'defaultText', isedit: true, cellsformat: 'c2'
+                    ,required:true
+                    , validation: function (value) {
+                        var year = value;
+                        if (year >= 2013) {
+                            return { result: false, message: "Ship Date should be before 1/1/2013" };
+                        }
+                        return { result: true, message: "" };
+                    }
+                },
                 {
                     text: 'Total', datafield: 'total', width: 100, cellsalign: 'right', cellsformat: 'c2', columntype: 'numberinput',
                     isedit: true,
@@ -125,13 +135,7 @@
                     //    //editor.jqxNumberInput({ decimalDigits: 0 });
                     //    console.log(dom, grid, griddata);
                     //},
-                    //validation: function (cell, value) {
-                    //    var year = value.getFullYear();
-                    //    if (year >= 2013) {
-                    //        return { result: false, message: "Ship Date should be before 1/1/2013" };
-                    //    }
-                    //    return true;
-                    //}
+                    
                     , initsort: function () { }
                 }
             ]

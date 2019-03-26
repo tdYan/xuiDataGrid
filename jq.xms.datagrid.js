@@ -197,6 +197,11 @@
             'target': null, 'type': 'button', 'event': 'click', 'handler': function (grid, e) {
                 grid.refresh();
             }, name: 'reflresh', 'text': '刷新', 'position': 'top', 'float': 'left'
+        },
+        {
+            'target': null, 'type': 'button', 'event': 'click', 'handler': function (grid, e) {
+                
+            }, name: 'save', 'text': '保存', 'position': 'top', 'float': 'left'
         }
     ]
 
@@ -255,6 +260,7 @@
         this._oldSource = [];
         this.__grid_id = getRandomId();
         this.currentLength = 0;
+        this.checkboxWidth = opts.checkboxWidth || 25;
         this.state = 0;//0初始化，1未编辑，2编辑中
         this.editState = 1; //1验证通过，0验证未通过
 
@@ -318,6 +324,12 @@
         }
         this.state = 2;
     }
+    xmsDataGrid.prototype.delRow = function (rowId) {
+        
+    }
+    xmsDataGrid.prototype.saveRow = function (rowId) {
+
+    }
     xmsDataGrid.prototype._addRowHtml = function (count,datas) {
         var count = count || 1;
         var self = this, $gridTrWrap = self.$gridtbody.find('tbody:first');
@@ -329,7 +341,8 @@
             var j = this.currentLength++;
             var __id = primarykey ? (item[primarykey] ? item[primarykey] : getRandomId()) : getRandomId();
             htmls.push('<tr class="xui-grid-body-row" id="gridid_' + this.__grid_id + 'row' + j + '" data-id="' + __id + '">');
-            var tds = [], trDatas = (datas && datas[k]||{});
+            var tds = [], trDatas = (datas && datas[k] || {});
+            tds.push('<td class="xui-grid-tbody-cells " style="width:' + this.checkboxWidth + 'px;"><input class="xui-grid-tbody-cell-checkbox" type="checkbox" /></td>');
             for (var i = 0, len = columns.length; i < len; i++) {
                 var item = columns[i];
                 trDatas[item.datafield] = trDatas[item.datafield] ? trDatas[item.datafield] : '';
@@ -486,7 +499,7 @@
                 rendered: function ($input, $box, data, xuiediter) {
                     $input.focus();
                 }
-            }, { datatype: editer.datatype }));
+            }, _editer));
             self.editorManager.add(_edit);
             $(cell).off('click.xuigridCell').on('click.xuigridCell', function () {
                 var that = this;
@@ -514,7 +527,7 @@
                 var editer = self.findColEditer(_editer.edittype);
                 if (editer) {
                     //变为可编辑元素
-                    var _edit = new editer(this, { datatype: _editer.datatype,super: self, });
+                    var _edit = new editer(this, $.extend({}, { datatype: _editer.datatype, super: self }, _editer));
                     self.editorManager.add(_edit);
                 }
             })
@@ -544,11 +557,24 @@
             });
         });
     }
+    xmsDataGrid.prototype.bindCheckbox = function () {
+        var self = this, $bodychecklist = self.$box.find('.xui-grid-tbody-cell-checkbox'), checklength = $bodychecklist.length;
+        self.$box.find('.xui-grid-checkall').on('change', function () {
+            $bodychecklist.prop('checked', $(this).prop('checked'));
+        });
+        $bodychecklist.on('change', function () {
+            var checkedlist = self.$box.find('.xui-grid-tbody-cell-checkbox:checked');
+            var checkedlength = checkedlist.length;
+            if (checkedlength == checklength) {
+                self.$box.find('.xui-grid-checkall').prop('checked', true);
+            }
+        });
+    }
     xmsDataGrid.prototype.bindEvent = function (){
         this.headerBindFilter();
         this.headerBindresize();
         this.gridBindScroll();
-        
+        this.bindCheckbox();
         this.bodyBindEdit();
     }
     xmsDataGrid.prototype.render = function () {
@@ -587,7 +613,9 @@
         var columns = this.opts.columns;
         var htmls = [],ths=[];
         var maxW = 0;
-        
+        var checkboxWidth = this.checkboxWidth;
+        maxW += checkboxWidth;
+        ths.push('<th class="xui-grid-header-cells " style="width:' + checkboxWidth + 'px;"><input type="checkbox" class="xui-grid-checkall" /></th>');
         for (var i = 0, len = columns.length; i < len; i++) {
             var item = columns[i];
             if (!item.width) { item.width = 100; };
@@ -649,19 +677,21 @@
 
 
     //按钮组件
+     /*
+    *@target 可以指定某个DOm元素为按钮组件
+    *@context 需要添加按钮的容器
+    *@
+    *@isRender 为true时 必须有context来添加该按钮，为false时，可以在后续添加$btn
+    * @_super 可以为添加该按钮的对象，可以访问改对象的方法
+    */
+    var btnOpts = {
+        'target': null, 'context': null, 'type': 'button', 'event': 'click', 'handler': function (grid, e) {
+        }, isRender: true, name: 'create', 'text': '按钮', 'position': 'none', 'float': 'none', 'color': 'btn-primary', '_super': null
+    }
     xui.class('xui.xuiBtn', {
         constructor: function (opts) {
-            /*
-             *@target 可以指定某个DOm元素为按钮组件
-             *@context 需要添加按钮的容器
-             *@
-             *@isRender 为true时 必须有context来添加该按钮，为false时，可以在后续添加$btn
-             * @_super 可以为添加该按钮的对象，可以访问改对象的方法
-             */
-            $.extend(this, {
-                'target': null,'context':null, 'type': 'button', 'event': 'click', 'handler': function (grid, e) {
-                },isRender:true, name: 'create', 'text': '按钮', 'position': 'none', 'float': 'none','color':'btn-primary','_super':null
-            }, opts);
+           
+            $.extend(this, btnOpts, opts);
             this.isAppend = false;
             this.$btn = null;
 
@@ -693,7 +723,7 @@
         
     });
 
-    //可编辑组件管理
+    //验证错误提示
     xui.class('xui.xuiEditorTooltip', {
         constructor: function (opts) {
             var __id = getRandomId();
@@ -701,8 +731,9 @@
             this.isShow = true;
             this.$box = opts.target;
             this.$context = opts.context || $('body');
-            this.position = ['auto','auto','auto','auto'];//[top,right,bottom,left];
-            this.offset = [0,0,0,0];//[top,right,bottom,left];
+            this.position = opts.position ||['auto','auto','auto','auto'];//[top,right,bottom,left];
+            this.offset = opts.offset ||[0, 0, 0, 0];//[top,right,bottom,left];
+            this.$offsetTarget = opts.offsetTarget || this.$box;
             this.$icon = opts.icon||'';
             this.$msg = opts.msg || '';
             this.$tooltip = null;
@@ -713,12 +744,13 @@
             this.setPos();
         },
         setPos: function () {
-            var targetOffset = $(this.$box).offset();
+            var offsetTarget = $(this.$offsetTarget);
+            var targetOffset = offsetTarget.offset();
             var targetSize = {
-                width: $(this.$box).outerWidth(), height: $(this.$box).outerHeight()
+                width: offsetTarget.outerWidth(), height: offsetTarget.outerHeight()
             };
             this.position[3] = 0;
-            this.position[2] =   targetSize.height;
+            this.position[2] = targetSize.height;
             var _left = this.position[3] == 'auto' ? this.position[3] : this.position[3] + this.offset[3];
             var _bottom = this.position[2] == 'auto' ? this.position[2] : this.position[2] + this.offset[2];
             var _right = this.position[1] == 'auto' ? this.position[1] : this.position[1] + this.offset[1];
@@ -726,11 +758,11 @@
             this.$tooltip.css({ 'left': _left, 'bottom': _bottom, 'right': _right, 'top': _top });
         },
         setByContext: function () {
-            var targetOffset = $(this.$box).offset();
+            var offsetTarget = $(this.$offsetTarget);
+            var targetOffset = offsetTarget.offset();
             var targetSize = {
-                width: $(this.$box).outerWidth(), height: $(this.$box).outerHeight()
+                width: offsetTarget.outerWidth(), height: offsetTarget.outerHeight()
             };
-            console.log(targetOffset, targetSize)
             this.position[3] = targetOffset.left;
             this.position[0] = targetOffset.top - targetSize.height;
             var _left = this.position[3] == 'auto' ? this.position[3] : this.position[3] + this.offset[3];
@@ -802,18 +834,13 @@
             var flags = [];
             for (var i = 0, len = this.editors.length; i < len; i++) {
                 var item = this.editors[i];
-                
-                if (item.validations.length > 0) {
-                    
-                    var valids = item.valid();//验证单元格
-                    if (valids.length > 0) {
-                        flags.push(valids);
+                if (item.editState == 1) {
+                    if (item.validations.length > 0) {
+                        var valids = item.valid();//验证单元格
+                        if (valids.length > 0) {
+                            flags.push(valids);
+                        }
                     }
-                    //flag = $.grep(item.validations, function (ii, nn) {
-                    //    if (typeof nn === 'function') {
-                    //        return nn(item.$input.val());
-                    //    }
-                    //});
                 }
             }
             return flags;
@@ -861,7 +888,7 @@
             //console.log('end',self.editState);
             that && $(that).off();
             self.remove();
-            self.$tooltip.clear();
+            self.$tooltip.hide();
             self.$box.html(val);
             self.editState = 2;
         },
@@ -906,7 +933,7 @@
             if (this.validations.length > 0) {
                 $.each(this.validations, function (ii, nn) {
                     if (typeof nn === 'function') {
-                        var _flag = nn(self.$input.val());
+                        var _flag = nn(self.$input.val(),self.$input,self);
                         if (_flag.result == false) {
                             flags.push(_flag);
                         }
@@ -919,7 +946,7 @@
                 
             } else {
                
-                self.$tooltip.clear();
+                self.$tooltip.hide();
             }
             return flags;
         }
@@ -943,9 +970,21 @@
         this.edited = opts.edited || function () { }//编辑完成后
         this.__super = opts.super || null;
 
+
         //验证相关
+        this.required = opts.required;
+        console.log(this.required);
+        if (this.required === undefined) {
+            this.required = true;
+        }
         this.datatype = opts.datatype || 'default';
         this.validations = [];//function () { return { result: true, message: "" } };
+        
+        if (this.required ==true) {
+            if (validtionRuler.hasOwnProperty('required')) {
+                this.validations.push(validtionRuler['required']);
+            }
+        }
         if (this.datatype !== 'default') {
             if (validtionRuler.hasOwnProperty(this.datatype)) {
                 this.validations.push(validtionRuler[this.datatype]);
@@ -957,7 +996,7 @@
         if (opts.onchange) {
             this.onchange = opts.onchange || function () { };
         }
-        this.$tooltip = new xui.xuiEditorTooltip({ target: this.$box, context: this.$box/* this.__super?this.__super.$box:null*/ });
+        this.$tooltip = new xui.xuiEditorTooltip({ target: this.$box, context: this.$box/* this.__super?this.__super.$box:null*/, offsetTarget:this.$input,offset:['0','0',15,10] });
         
         this.init();
     }
@@ -1067,6 +1106,10 @@
         number: function (val) {
             var flag = !isNaN(val);
             return { result: flag,message:!flag&&'请输入数字' };
+        },
+        required: function (val) {
+            var flag = val!='';
+            return { result: flag, message: !flag && '不能为空' };
         }
     }
     //添加自定义规则
